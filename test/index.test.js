@@ -26,6 +26,25 @@ describe('wrapFunction', () => {
         expect(res.statusCode).toBe(500);
         expect(res.error.text).toBe('Oops!');
     });
+    it('handles requests without errors', async () => {
+        const app = express();
+        const router = express.Router();
+
+        router.get(
+            '/test',
+            wrapFunction(async (req, res, next) => {
+                res.send('Success!');
+            })
+        );
+
+        app.use(router);
+
+        const request = supertest(app);
+        const res = await request.get('/test');
+
+        expect(res.statusCode).toBe(200);
+        expect(res.text).toBe('Success!');
+    });
 });
 
 describe('wrapRouter', () => {
@@ -237,5 +256,54 @@ describe('wrapRouter', () => {
         expect(res.constructor.name).toBe('Response');
         expect(res.statusCode).toBe(500);
         expect(res.error.text).toBe('Oops!');
+    });
+    it('handles POST requests', async () => {
+        const app = express();
+        const router = wrapRouter(express.Router());
+
+        router.post('/test', async (req, res, next) => {
+            res.send('POST request handled');
+        });
+
+        app.use(router);
+
+        const request = supertest(app);
+        const res = await request.post('/test');
+
+        expect(res.statusCode).toBe(200);
+        expect(res.text).toBe('POST request handled');
+    });
+
+    it('handles PUT requests', async () => {
+        const app = express();
+        const router = wrapRouter(express.Router());
+
+        router.put('/test', async (req, res, next) => {
+            res.send('PUT request handled');
+        });
+
+        app.use(router);
+
+        const request = supertest(app);
+        const res = await request.put('/test');
+
+        expect(res.statusCode).toBe(200);
+        expect(res.text).toBe('PUT request handled');
+    });
+
+    it('handles 404 errors for non-existing routes', async () => {
+        const app = express();
+        const router = wrapRouter(express.Router());
+
+        app.use(router);
+        app.use((req, res, next) => {
+            res.status(404).send('Not Found');
+        });
+
+        const request = supertest(app);
+        const res = await request.get('/non-existing-route');
+
+        expect(res.statusCode).toBe(404);
+        expect(res.text).toBe('Not Found');
     });
 });
