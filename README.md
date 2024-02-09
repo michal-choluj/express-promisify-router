@@ -125,6 +125,28 @@ router.get('/foo', [
 ]);
 ```
 
+### Support for router.param
+
+RouterWrapper class supports Express's router.param method. This allows you to add middleware functions that will be invoked when a route parameter is matched. For example, you can define a router.param middleware for the userId parameter like this:
+
+```javascript
+router.param(
+    'userId',
+    wrapFunction(async (req, res, next, userId) => {
+        const user = await User.findById(userId);
+        if (!user) {
+            const error = new Error('User not found');
+            error.status = 404;
+            throw error;
+        }
+        req.user = user;
+        next();
+    })
+);
+```
+
+This middleware will be invoked whenever a route with the :userId parameter is matched. It allows you to perform operations like validating and loading the user data before the route handler is invoked.
+
 ## API
 
 ### wrapRouter()

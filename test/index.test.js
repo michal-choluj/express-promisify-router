@@ -45,6 +45,34 @@ describe('wrapFunction', () => {
         expect(res.statusCode).toBe(200);
         expect(res.text).toBe('Success!');
     });
+    it('handles app.param', async () => {
+        const app = express();
+        const router = express.Router();
+
+        router.param(
+            'userId',
+            wrapFunction(async (req, res, next, userId) => {
+                const user = await Promise.resolve({ userId, name: 'John' });
+                if (!user) {
+                    const error = new Error('User not found');
+                    error.status = 404;
+                    throw error;
+                }
+                req.user = user;
+                next();
+            })
+        );
+
+        router.get('/user/:userId', (req, res) => {
+            res.json(req.user);
+        });
+
+        app.use(router);
+        const request = supertest(app);
+        const res = await request.get('/user/10');
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toEqual({ name: 'John', userId: '10' });
+    });
 });
 
 describe('wrapRouter', () => {
@@ -96,11 +124,11 @@ describe('wrapRouter', () => {
 
         router.get(
             '/test',
-            (req, res, next) => {
+            function test1(req, res, next) {
                 req.foo = 'Boo!';
                 next();
             },
-            async (req) => {
+            async function test2(req) {
                 const result = await new Promise((resolve) => {
                     resolve('Oops!');
                 });
@@ -109,7 +137,7 @@ describe('wrapRouter', () => {
         );
 
         app.use(router);
-        app.use((err, req, res, next) => {
+        app.use(function errorHandler(err, req, res, next) {
             res.status(500).send(err.message);
         });
 
